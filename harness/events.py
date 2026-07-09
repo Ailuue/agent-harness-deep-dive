@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from .providers import ToolCall
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Event:
     """Base class — every event carries the run's depth (0 = main agent, 1 = a
     subagent) so a UI can indent nested work."""
@@ -36,7 +36,7 @@ class Event:
         return "  " * self.depth
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RunStarted(Event):
     task: str = ""
 
@@ -44,7 +44,7 @@ class RunStarted(Event):
         return f"{self._indent()}▶ run started: {self.task!r}"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ModelTurn(Event):
     """The model produced a turn: either tool requests or a final answer."""
 
@@ -58,27 +58,27 @@ class ModelTurn(Event):
         return f"{self._indent()}· model answered"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PermissionAsked(Event):
-    call: ToolCall | None = None
+    call: ToolCall
     decision: str = ""  # "allow" | "deny"
 
     def line(self) -> str:
         return f"{self._indent()}? permission for {self.call.name}: {self.decision}"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ToolBlocked(Event):
-    call: ToolCall | None = None
+    call: ToolCall
     reason: str = ""
 
     def line(self) -> str:
         return f"{self._indent()}✗ blocked {self.call.name}: {self.reason}"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ToolFinished(Event):
-    call: ToolCall | None = None
+    call: ToolCall
     result: str = ""
     redacted: bool = False
 
@@ -88,7 +88,7 @@ class ToolFinished(Event):
         return f"{self._indent()}✓ {self.call.name} -> {preview}{tag}"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SubagentStarted(Event):
     name: str = ""
     task: str = ""
@@ -97,7 +97,7 @@ class SubagentStarted(Event):
         return f"{self._indent()}⇢ subagent {self.name!r} started: {self.task!r}"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SubagentFinished(Event):
     name: str = ""
     answer: str = ""
@@ -106,7 +106,7 @@ class SubagentFinished(Event):
         return f"{self._indent()}⇠ subagent {self.name!r} done"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Resumed(Event):
     """A run was reloaded from a checkpoint and continued — not started fresh."""
 
@@ -117,7 +117,7 @@ class Resumed(Event):
         return f"{self._indent()}↻ resumed run {self.run_id!r} from checkpoint (already {self.steps} step(s) in)"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Steered(Event):
     """An operator injected a message mid-run; it steers the next model turn."""
 
@@ -127,7 +127,7 @@ class Steered(Event):
         return f"{self._indent()}➤ steered mid-run: {self.message!r}"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Interrupted(Event):
     """An operator interrupted the run; it stopped at the next safe boundary."""
 
@@ -138,7 +138,7 @@ class Interrupted(Event):
         return f"{self._indent()}⏹ interrupted{note}"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RunFinished(Event):
     answer: str = ""
     stopped_early: bool = False
