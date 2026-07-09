@@ -40,7 +40,7 @@ from .events import (
 )
 from .policy import ALLOW, ASK, DENY, PermissionPolicy, always_allow
 from .steer import SteerController
-from .providers import ToolCall
+from .providers import ToolCall, Transcript
 from .sandbox import Sandbox
 from .tools import Tool
 
@@ -113,7 +113,11 @@ class Harness:
             Tool(
                 name=s.name,
                 description=s.description,
-                parameters={"type": "object", "properties": {"task": {"type": "string"}}, "required": ["task"]},
+                parameters={
+                    "type": "object",
+                    "properties": {"task": {"type": "string"}},
+                    "required": ["task"],
+                },
                 func=lambda *_: "",  # never called directly — the harness intercepts
             )
             for s in self.subagents.values()
@@ -147,8 +151,9 @@ class Harness:
             self.last_answer = resumed.answer
             return
 
+        transcript: Transcript
         if resumed is not None and resumed.transcript:
-            transcript = resumed.transcript          # the completed work, off disk
+            transcript = resumed.transcript  # the completed work, off disk
             steps = resumed.steps
             task = resumed.task
             yield Resumed(depth=_depth, run_id=run_id or "", steps=steps)
@@ -169,7 +174,9 @@ class Harness:
                 signal = controller.poll(steps)
                 for message in signal.messages:
                     transcript.append({"role": "user", "content": message})
-                    self._checkpoint(checkpointer, run_id, task, transcript, steps, RUNNING)
+                    self._checkpoint(
+                        checkpointer, run_id, task, transcript, steps, RUNNING
+                    )
                     yield Steered(depth=_depth, message=message)
                 if signal.interrupt_reason:
                     interrupted = True
@@ -184,36 +191,65 @@ class Harness:
                 answer = turn.text or ""
                 break
 
-            if steps >= self.max_steps:
-                stopped_early = True
-                answer = "(stopped: reached the step limit)"
-                break
-
-            transcript.append({"role": "assistant", "text": turn.text, "tool_calls": turn.tool_calls})
+            transcript.append(
+                {"role": "assistant", "text": turn.text, "tool_calls": turn.tool_calls}
+            )
 
             for call in turn.tool_calls:
+                # The step ceiling is per tool call, not per turn: a single turn can
+                # carry many parallel calls, and each one counts. Check before running
+                # the call so the limit bounds a burst, not just a turn boundary.
+                if steps >= self.max_steps:
+                    stopped_early = True
+                    answer = "(stopped: reached the step limit)"
+                    break
                 steps += 1
 
                 # 1. Subagent? Run a nested harness and re-emit its events.
                 if call.name in self.subagents:
                     result = yield from self._run_subagent(call, _depth)
-                    transcript.append({"role": "tool", "tool_call_id": call.id, "name": call.name, "content": result})
-                    self._checkpoint(checkpointer, run_id, task, transcript, steps, RUNNING)
+                    transcript.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": call.id,
+                            "name": call.name,
+                            "content": result,
+                        }
+                    )
+                    self._checkpoint(
+                        checkpointer, run_id, task, transcript, steps, RUNNING
+                    )
                     continue
 
                 # 2. Permission policy.
                 verdict = self.policy.decide(call.name)
                 if verdict == DENY:
-                    yield ToolBlocked(depth=_depth, call=call, reason="denied by policy")
-                    transcript.append(self._tool_result(call, "Blocked: this action is denied by policy."))
-                    self._checkpoint(checkpointer, run_id, task, transcript, steps, RUNNING)
+                    yield ToolBlocked(
+                        depth=_depth, call=call, reason="denied by policy"
+                    )
+                    transcript.append(
+                        self._tool_result(
+                            call, "Blocked: this action is denied by policy."
+                        )
+                    )
+                    self._checkpoint(
+                        checkpointer, run_id, task, transcript, steps, RUNNING
+                    )
                     continue
                 if verdict == ASK:
                     approved = self.approve(call) if self.approve else False
-                    yield PermissionAsked(depth=_depth, call=call, decision=ALLOW if approved else DENY)
+                    yield PermissionAsked(
+                        depth=_depth, call=call, decision=ALLOW if approved else DENY
+                    )
                     if not approved:
-                        transcript.append(self._tool_result(call, "Blocked: the user did not approve this action."))
-                        self._checkpoint(checkpointer, run_id, task, transcript, steps, RUNNING)
+                        transcript.append(
+                            self._tool_result(
+                                call, "Blocked: the user did not approve this action."
+                            )
+                        )
+                        self._checkpoint(
+                            checkpointer, run_id, task, transcript, steps, RUNNING
+                        )
                         continue
 
                 # 3. Pre-tool hooks (block, or substitute a result).
@@ -226,7 +262,9 @@ class Harness:
                 except HookBlock as hb:
                     yield ToolBlocked(depth=_depth, call=call, reason=str(hb))
                     transcript.append(self._tool_result(call, f"Blocked by hook: {hb}"))
-                    self._checkpoint(checkpointer, run_id, task, transcript, steps, RUNNING)
+                    self._checkpoint(
+                        checkpointer, run_id, task, transcript, steps, RUNNING
+                    )
                     continue
 
                 # 4. Execute (in the sandbox), or use the hook's substitute.
@@ -251,34 +289,63 @@ class Harness:
                 # from (rather than re-running the tool).
                 transcript.append(self._tool_result(call, result))
                 self._checkpoint(checkpointer, run_id, task, transcript, steps, RUNNING)
-                yield ToolFinished(depth=_depth, call=call, result=result, redacted=result != original)
+                yield ToolFinished(
+                    depth=_depth, call=call, result=result, redacted=result != original
+                )
+
+            if stopped_early:
+                break
 
         final_status = INTERRUPTED if interrupted else FAILED if stopped_early else DONE
-        self._checkpoint(checkpointer, run_id, task, transcript, steps, final_status, answer)
-        yield RunFinished(depth=_depth, answer=answer, stopped_early=stopped_early or interrupted, steps=steps)
+        self._checkpoint(
+            checkpointer, run_id, task, transcript, steps, final_status, answer
+        )
+        yield RunFinished(
+            depth=_depth,
+            answer=answer,
+            stopped_early=stopped_early or interrupted,
+            steps=steps,
+        )
         self.last_answer = answer
 
     # --- Helpers -------------------------------------------------------------
     def _tool_result(self, call: ToolCall, content: str) -> dict:
-        return {"role": "tool", "tool_call_id": call.id, "name": call.name, "content": content}
+        return {
+            "role": "tool",
+            "tool_call_id": call.id,
+            "name": call.name,
+            "content": content,
+        }
 
-    def _checkpoint(self, checkpointer, run_id, task, transcript, steps, status, answer=""):
+    def _checkpoint(
+        self, checkpointer, run_id, task, transcript, steps, status, answer=""
+    ):
         """Persist the run's resumable state after a step — if a checkpointer is
         attached. No-op otherwise, so non-durable runs pay nothing."""
         if checkpointer is None or run_id is None:
             return
-        checkpointer.save(RunState(
-            run_id=run_id, task=task, status=status, steps=steps, answer=answer,
-            transcript=list(transcript),
-        ))
+        checkpointer.save(
+            RunState(
+                run_id=run_id,
+                task=task,
+                status=status,
+                steps=steps,
+                answer=answer,
+                transcript=list(transcript),
+            )
+        )
 
     def _run_subagent(self, call: ToolCall, depth: int) -> Iterator[Event]:
         spec = self.subagents[call.name]
         sub_task = str(call.arguments.get("task", ""))
         yield SubagentStarted(depth=depth, name=spec.name, task=sub_task)
         child = Harness(
-            spec.system, spec.tools,
-            policy=spec.policy, sandbox=self.sandbox, approve=self.approve, max_steps=spec.max_steps,
+            spec.system,
+            spec.tools,
+            policy=spec.policy,
+            sandbox=self.sandbox,
+            approve=self.approve,
+            max_steps=spec.max_steps,
         )
         sub_answer = ""
         for ev in child.run(sub_task, _depth=depth + 1):
@@ -289,7 +356,9 @@ class Harness:
         return sub_answer
 
 
-def run_to_completion(harness: Harness, task: str, *, on_event: Callable[[Event], None] | None = None) -> str:
+def run_to_completion(
+    harness: Harness, task: str, *, on_event: Callable[[Event], None] | None = None
+) -> str:
     """Drive a harness to its final answer, optionally handling each event.
 
     A convenience for headless/scripted use: you don't always want to write the
