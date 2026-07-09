@@ -44,7 +44,13 @@ class WorkerResult:
 
 def _run_worker(sub: Subagent, task: str, sandbox: Sandbox) -> WorkerResult:
     start = time.perf_counter()
-    worker = Harness(sub.system, sub.tools, policy=sub.policy, sandbox=sandbox, max_steps=sub.max_steps)
+    worker = Harness(
+        sub.system,
+        sub.tools,
+        policy=sub.policy,
+        sandbox=sandbox,
+        max_steps=sub.max_steps,
+    )
     answer = run_to_completion(worker, task)
     return WorkerResult(sub.name, task, answer, (time.perf_counter() - start) * 1000)
 
@@ -63,5 +69,7 @@ def fan_out(
     if not concurrent:
         return [_run_worker(sub, task, sandbox) for sub, task in workers]
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = [pool.submit(_run_worker, sub, task, sandbox) for sub, task in workers]
+        futures = [
+            pool.submit(_run_worker, sub, task, sandbox) for sub, task in workers
+        ]
         return [f.result() for f in futures]
