@@ -30,13 +30,13 @@ import os
 import time
 from dataclasses import dataclass, field
 
-from .providers import ToolCall
+from .providers import ToolCall, Transcript
 
 # Run-status values — the durable task-state lifecycle.
-QUEUED = "queued"            # created, not started
-RUNNING = "running"          # in progress (or crashed mid-run — a checkpoint to resume)
-DONE = "done"                # finished with an answer
-FAILED = "failed"            # gave up (e.g. hit the step limit) without completing
+QUEUED = "queued"  # created, not started
+RUNNING = "running"  # in progress (or crashed mid-run — a checkpoint to resume)
+DONE = "done"  # finished with an answer
+FAILED = "failed"  # gave up (e.g. hit the step limit) without completing
 INTERRUPTED = "interrupted"  # stopped early by an operator (steering); resumable
 
 
@@ -49,31 +49,33 @@ class RunState:
     status: str = QUEUED
     steps: int = 0
     answer: str = ""
-    transcript: list[dict] = field(default_factory=list)
+    transcript: Transcript = field(default_factory=list)
     updated_at: float = 0.0
 
 
 # The transcript holds ToolCall dataclasses inside assistant turns; JSON can't. We
 # convert them to/from plain dicts on save/load.
-def _encode_transcript(transcript: list[dict]) -> list[dict]:
+def _encode_transcript(transcript: Transcript) -> Transcript:
     out = []
     for entry in transcript:
         entry = dict(entry)
         if entry.get("role") == "assistant" and entry.get("tool_calls"):
             entry["tool_calls"] = [
-                {"id": c.id, "name": c.name, "arguments": c.arguments} for c in entry["tool_calls"]
+                {"id": c.id, "name": c.name, "arguments": c.arguments}
+                for c in entry["tool_calls"]
             ]
         out.append(entry)
     return out
 
 
-def _decode_transcript(raw: list[dict]) -> list[dict]:
+def _decode_transcript(raw: Transcript) -> Transcript:
     out = []
     for entry in raw:
         entry = dict(entry)
         if entry.get("role") == "assistant" and entry.get("tool_calls"):
             entry["tool_calls"] = [
-                ToolCall(c["id"], c["name"], c["arguments"]) for c in entry["tool_calls"]
+                ToolCall(c["id"], c["name"], c["arguments"])
+                for c in entry["tool_calls"]
             ]
         out.append(entry)
     return out
