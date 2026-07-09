@@ -18,11 +18,11 @@ subagents, event streams — are all provider-neutral, so a deterministic rule-b
 same harness drives a real OpenAI or Claude model.
 
 This is a **bonus dive**, and it's the direct sequel to
-[Agents](https://github.com/Ailuue/agents-deep-dive) (#6): that dive builds the
+[Agents](https://github.com/alexvervloet/agents-deep-dive) (#6): that dive builds the
 loop; this one builds the layer above it. It also connects to
-[Prompt Injection](https://github.com/Ailuue/prompt-injection-deep-dive) (hooks
+[Prompt Injection](https://github.com/alexvervloet/prompt-injection-deep-dive) (hooks
 and the sandbox are where guardrails live) and
-[Context Engineering](https://github.com/Ailuue/context-engineering-deep-dive)
+[Context Engineering](https://github.com/alexvervloet/context-engineering-deep-dive)
 (subagents give each agent its own window). Its code depends on none of them.
 
 Like its siblings, it's meant to be *walked through*. Each section ends with
@@ -130,7 +130,7 @@ to refuse). **Post-tool** runs after (transform the result before it re-enters t
 model's context — the natural home for redaction). The example blocks reads of
 credential-looking files with a pre-tool hook and redacts an API key that slips
 through a file's contents with a post-tool hook — the model and your logs never see
-the raw secret. This is where the [Prompt Injection](https://github.com/Ailuue/prompt-injection-deep-dive)
+the raw secret. This is where the [Prompt Injection](https://github.com/alexvervloet/prompt-injection-deep-dive)
 dive's defenses live in a real system: at the harness seam, not re-implemented in
 every tool.
 
@@ -403,7 +403,7 @@ You've built a harness from scratch. The frontier is more of the same seams, har
   run by the provider; and fully managed agents where you never run the loop.
 - **Evaluating harness behavior** — score trajectories (right tools, right order, no
   denied-then-retried loops) with the
-  [Evals dive](https://github.com/Ailuue/evals-deep-dive), not just final answers.
+  [Evals dive](https://github.com/alexvervloet/evals-deep-dive), not just final answers.
 
 ---
 
@@ -427,7 +427,7 @@ replaces:
 These are right for learning and wrong for production. The general ops machinery —
 observability, cost, reliability, caching, guardrails, prompt versioning, eval
 gates — is built from scratch and wired into one running app in
-**[Production](https://github.com/Ailuue/ai-in-production-deep-dive)** (#8), which
+**[Production](https://github.com/alexvervloet/ai-in-production-deep-dive)** (#8), which
 also runs offline on a mock provider.
 
 ---
@@ -498,25 +498,26 @@ and capstone — and they share one house style: provider-agnostic where it make
 sense, built from scratch (no frameworks), offline-first examples, and a real
 capstone. Do them in any order; this sequence builds naturally:
 
-1. [OpenAI API](https://github.com/Ailuue/openai-api-deep-dive) — the API from zero
-2. [Claude API](https://github.com/Ailuue/claude-api-deep-dive) — the same ideas, the Anthropic way
-3. [Prompt Engineering](https://github.com/Ailuue/prompt-engineering-deep-dive) — shape model behavior with better prompts
-4. [RAG](https://github.com/Ailuue/rag-deep-dive) — answer questions over your own documents
-5. [Evals](https://github.com/Ailuue/evals-deep-dive) — measure whether a change actually helps
-6. [Agents](https://github.com/Ailuue/agents-deep-dive) — give a model tools and a loop so it can act
-7. [Prompt Injection & Guardrails](https://github.com/Ailuue/prompt-injection-deep-dive) — attack and defend all of the above
-8. [Production](https://github.com/Ailuue/ai-in-production-deep-dive) — operate one app end to end
+1. [OpenAI API](https://github.com/alexvervloet/openai-api-deep-dive) — the API from zero
+2. [Claude API](https://github.com/alexvervloet/claude-api-deep-dive) — the same ideas, the Anthropic way
+3. [Prompt Engineering](https://github.com/alexvervloet/prompt-engineering-deep-dive) — shape model behavior with better prompts
+4. [RAG](https://github.com/alexvervloet/rag-deep-dive) — answer questions over your own documents
+5. [Evals](https://github.com/alexvervloet/evals-deep-dive) — measure whether a change actually helps
+6. [Agents](https://github.com/alexvervloet/agents-deep-dive) — give a model tools and a loop so it can act
+7. [Prompt Injection & Guardrails](https://github.com/alexvervloet/prompt-injection-deep-dive) — attack and defend all of the above
+8. [Production](https://github.com/alexvervloet/ai-in-production-deep-dive) — operate one app end to end
 
 **Bonus dives** — standalone, slotting in where they're most useful:
 
-- [Agent Harnesses](https://github.com/Ailuue/agent-harness-deep-dive) — build on the loop: hooks, permissions, sandboxing, subagents, headless
-- [Context Engineering](https://github.com/Ailuue/context-engineering-deep-dive) — manage what's in the window
-- [Multimodal](https://github.com/Ailuue/multimodal-deep-dive) — images & audio, not just text
-- [Realtime Voice](https://github.com/Ailuue/realtime-voice-deep-dive) — low-latency speech-to-speech agents
-- [Fine-tuning](https://github.com/Ailuue/fine-tuning-deep-dive) — teach a model new behavior by example
-- [MCP](https://github.com/Ailuue/mcp-deep-dive) — serve tools, data & prompts over a standard protocol
-- [Local Models](https://github.com/Ailuue/local-models-deep-dive) — run open-weight models on your own machine
+- [Agent Harnesses](https://github.com/alexvervloet/agent-harness-deep-dive) — build on the loop: hooks, permissions, sandboxing, subagents, headless
+- [Context Engineering](https://github.com/alexvervloet/context-engineering-deep-dive) — manage what's in the window
+- [Multimodal](https://github.com/alexvervloet/multimodal-deep-dive) — images & audio, not just text
+- [Realtime Voice](https://github.com/alexvervloet/realtime-voice-deep-dive) — low-latency speech-to-speech agents
+- [Fine-tuning](https://github.com/alexvervloet/fine-tuning-deep-dive) — teach a model new behavior by example
+- [MCP](https://github.com/alexvervloet/mcp-deep-dive) — serve tools, data & prompts over a standard protocol
+- [Local Models](https://github.com/alexvervloet/local-models-deep-dive) — run open-weight models on your own machine
+- [Observability](https://github.com/alexvervloet/observability-deep-dive) — watch a running app over time: drift, quality, alerting, the flywheel
 
 **Agent Harnesses is a bonus dive.** It slots directly after
-[Agents](https://github.com/Ailuue/agents-deep-dive) (#6) — that dive builds the
+[Agents](https://github.com/alexvervloet/agents-deep-dive) (#6) — that dive builds the
 loop; this one builds the layer you run it on.
