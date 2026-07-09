@@ -67,7 +67,7 @@ class Sandbox:
         A blocklist ('reject rm') is a losing game — an attacker has infinite
         phrasings. An allowlist names the few commands you trust and refuses the
         rest by default."""
-        exe = command.strip().split() [0] if command.strip() else ""
+        exe = command.strip().split()[0] if command.strip() else ""
         if exe not in self.allowed_commands:
             raise SandboxError(
                 f"command {exe!r} is not on the allowlist "
