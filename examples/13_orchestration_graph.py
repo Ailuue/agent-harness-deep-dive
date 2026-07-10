@@ -38,14 +38,18 @@ ensure_ready()
 print(f"Provider: {describe()}\n")
 
 # A tiny keyword classifier — one node's worth of work.
-_HINTS = {"billing": ["refund", "charge", "invoice", "plan", "pay"],
-          "account": ["password", "login", "sign in", "member", "team"],
-          "technical": ["error", "crash", "export", "load", "bug", "save"]}
+_HINTS = {
+    "billing": ["refund", "charge", "invoice", "plan", "pay"],
+    "account": ["password", "login", "sign in", "member", "team"],
+    "technical": ["error", "crash", "export", "load", "bug", "save"],
+}
 
 
 def classify(state: dict) -> dict:
     text = state["ticket"].lower()
-    state["category"] = next((c for c, ws in _HINTS.items() if any(w in text for w in ws)), "general")
+    state["category"] = next(
+        (c for c, ws in _HINTS.items() if any(w in text for w in ws)), "general"
+    )
     return state
 
 
@@ -76,7 +80,7 @@ def route_after_review(state: dict) -> str:
         return "send"
     if state.get("attempts", 0) >= 2:
         return "escalate"
-    return "revise"          # the cycle: back through revise -> review
+    return "revise"  # the cycle: back through revise -> review
 
 
 def send(state: dict) -> dict:
@@ -96,9 +100,11 @@ graph = (
     .node("revise", revise)
     .node("send", send)
     .node("escalate", escalate)
-    .route("classify", lambda s: f"handle_{s['category']}")  # BRANCH: one handler per category
-    .route("review", route_after_review)                     # branch: send / revise / escalate
-    .edge("revise", "review")                                # cycle back to the gate
+    .route(
+        "classify", lambda s: f"handle_{s['category']}"
+    )  # BRANCH: one handler per category
+    .route("review", route_after_review)  # branch: send / revise / escalate
+    .edge("revise", "review")  # cycle back to the gate
     .edge("send", END)
     .edge("escalate", END)
 )
@@ -106,7 +112,10 @@ graph = (
 for _cat in CATEGORIES:
     graph.node(f"handle_{_cat}", handle).edge(f"handle_{_cat}", "review")
 
-for ticket in ["I want a refund on my last charge", "the page throws an error when I export"]:
+for ticket in [
+    "I want a refund on my last charge",
+    "the page throws an error when I export",
+]:
     final, path = graph.run("classify", {"ticket": ticket})
     print(f"Ticket: {ticket!r}")
     print(f"  category: {final['category']}")
