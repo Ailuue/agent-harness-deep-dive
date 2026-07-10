@@ -40,16 +40,24 @@ WORKER_LATENCY = 0.4  # seconds — a stand-in for a real worker's model + tool 
 
 
 def slow_lookup(args: dict, sandbox) -> str:
-    time.sleep(WORKER_LATENCY)          # simulate a worker that takes real time
+    time.sleep(WORKER_LATENCY)  # simulate a worker that takes real time
     return SEARCH_NOTES.func(args, sandbox)
 
 
 # One worker profile (its own persona + a single lookup tool), reused per topic.
 def worker() -> Subagent:
-    tool = Tool(name="search_notes", description=SEARCH_NOTES.description,
-                parameters=SEARCH_NOTES.parameters, func=slow_lookup)
-    return Subagent(name="researcher", description="Look up one topic.",
-                    system="You answer one factual question using search_notes.", tools=[tool])
+    tool = Tool(
+        name="search_notes",
+        description=SEARCH_NOTES.description,
+        parameters=SEARCH_NOTES.parameters,
+        func=slow_lookup,
+    )
+    return Subagent(
+        name="researcher",
+        description="Look up one topic.",
+        system="You answer one factual question using search_notes.",
+        tools=[tool],
+    )
 
 
 sandbox = Sandbox("workspace")
