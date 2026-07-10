@@ -30,7 +30,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
 
-from harness import Checkpointer, Harness, Sandbox, Tool, ToolFinished, describe, ensure_ready
+from harness import (
+    Checkpointer,
+    Harness,
+    Sandbox,
+    Tool,
+    ToolFinished,
+    describe,
+    ensure_ready,
+)
 from harness.tools import CALCULATOR, READ_FILE
 
 load_dotenv()
@@ -47,7 +55,9 @@ executed: list[str] = []
 
 def counting(tool: Tool) -> Tool:
     return Tool(
-        name=tool.name, description=tool.description, parameters=tool.parameters,
+        name=tool.name,
+        description=tool.description,
+        parameters=tool.parameters,
         func=lambda args, sb: (executed.append(tool.name), tool.func(args, sb))[1],
         dangerous=tool.dangerous,
     )
@@ -63,11 +73,16 @@ proc1 = Harness("You are a careful assistant.", tools, sandbox=sandbox)
 for event in proc1.run(TASK, run_id=RUN_ID, checkpointer=checkpointer):
     print("  " + event.line())
     if isinstance(event, ToolFinished):
-        print("  ‼ CRASH — the process dies here. But the step was checkpointed to disk.")
+        print(
+            "  ‼ CRASH — the process dies here. But the step was checkpointed to disk."
+        )
         break
 
 saved = checkpointer.load(RUN_ID)
-print(f"\nOn disk: runs/{RUN_ID}.json — status={saved.status}, {saved.steps} step(s) done.\n")
+assert saved is not None, "the run was just checkpointed, so it must be on disk"
+print(
+    f"\nOn disk: runs/{RUN_ID}.json — status={saved.status}, {saved.steps} step(s) done.\n"
+)
 
 print("=== Process 2 — a brand-new harness resumes from the checkpoint ===")
 proc2 = Harness("You are a careful assistant.", tools, sandbox=sandbox)
@@ -75,8 +90,10 @@ for event in proc2.run(TASK, run_id=RUN_ID, checkpointer=checkpointer):
     print("  " + event.line())
 
 print(f"\nTool executions across BOTH processes: {executed}")
-print(f"  read_file ran {executed.count('read_file')}x, calculator ran {executed.count('calculator')}x "
-      f"— each exactly once.")
+print(
+    f"  read_file ran {executed.count('read_file')}x, calculator ran {executed.count('calculator')}x "
+    f"— each exactly once."
+)
 print(
     "\nThat's durable execution: the crash cost nothing. Process 2 didn't re-read the\n"
     "file — it loaded the completed step from the checkpoint and continued at the\n"
