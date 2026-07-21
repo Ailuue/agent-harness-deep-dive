@@ -1,6 +1,5 @@
 """
-Setup check — run this first.
-=============================
+Setup check: run this first.
 
     python check_setup.py
 
@@ -78,7 +77,7 @@ def check_python():
     if (major, minor) >= (3, 10):
         ok(f"Python {major}.{minor} (3.10+ required)")
         return True
-    fail(f"Python {major}.{minor} — this repo needs Python 3.10 or newer.")
+    fail(f"Python {major}.{minor}: this repo needs Python 3.10 or newer.")
     return False
 
 
@@ -99,9 +98,9 @@ def check_dependencies(provider):
     missing = []
     for import_name, pip_name, purpose in needed:
         if importlib.util.find_spec(import_name) is not None:
-            ok(f"{pip_name} — {purpose}")
+            ok(f"{pip_name}: {purpose}")
         else:
-            fail(f"{pip_name} MISSING — {purpose}")
+            fail(f"{pip_name} MISSING: {purpose}")
             missing.append(pip_name)
     if missing:
         print("\n    Install everything with:  pip install -r requirements.txt")
@@ -111,7 +110,7 @@ def check_dependencies(provider):
 def check_keys(env, provider):
     print("\nAPI key")
     if provider == "mock":
-        ok("none needed — PROVIDER=mock runs offline.")
+        ok("none needed; PROVIDER=mock runs offline.")
         return True
     if env is None:
         fail(".env file not found.  Create it with:  cp .env.example .env")
@@ -120,7 +119,7 @@ def check_keys(env, provider):
     for name, prefix, placeholder in PROVIDER_KEYS.get(provider, []):
         value = _get(env, name)
         if not value or value == placeholder:
-            fail(f"{name} is not set. Store it in your keychain and run under `secrun` — see SECRETS.md.")
+            fail(f"{name} is not set. Store it in your keychain and run under `secrun` . See SECRETS.md.")
             all_ok = False
         elif not value.startswith(prefix):
             warn(f"{name} is set but doesn't start with '{prefix}'. Double-check it.")
@@ -144,9 +143,9 @@ def main():
     if py and deps and keys:
         print(_c("All set! 🎉", "1;32"))
         print("Start here:  python examples/01_bare_loop_recap.py")
-        print("(Every example runs offline on the default mock — no key.)")
+        print("(Every example runs offline on the default mock, no key.)")
         return 0
-    print(_c("Not ready yet — fix the ✗ items above, then run this again.", "1;31"))
+    print(_c("Not ready yet. Fix the ✗ items above, then run this again.", "1;31"))
     print("(Tip: PROVIDER=mock needs no key and runs everything offline.)")
     return 1
 
